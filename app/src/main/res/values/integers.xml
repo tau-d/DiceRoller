@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="maxNumDigits">3</integer>
+    <integer name="editTextEms">1</integer>
+    <integer name="maxSetNameLength">30</integer>
+
+    <integer-array name="dice_size_array">
+        <item>2</item>
+        <item>4</item>
+        <item>6</item>
+        <item>8</item>
+        <item>10</item>
+        <item>12</item>
+        <item>20</item>
+        <item>100</item>
+    </integer-array>
+</resources>

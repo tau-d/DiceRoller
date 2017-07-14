@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+    <CheckBox
+        android:id="@+id/rerollOnesCheckBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/rerollOnesCheckBox"/>
+
+    <CheckBox
+        android:id="@+id/dropLowestCheckBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/dropLowestCheckBox"/>
+
+    <CheckBox
+        android:id="@+id/highlightMinMaxCheckBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/highlightMinMaxCheckBox"/>
+
+    <CheckBox
+        android:id="@+id/sortRollsCheckBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/sortRollsCheckBox"/>
+
+    <Button
+        android:id="@+id/deleteDialogOptionButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/deleteOptionDialogButton"/>
+
+</LinearLayout>

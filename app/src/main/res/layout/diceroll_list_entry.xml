@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:tools="http://schemas.android.com/tools"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/numDiceEditText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ems="@integer/editTextEms"
+            android:hint="@string/numDiceHint"
+            android:inputType="number"
+            android:maxLength="@integer/maxNumDigits"
+            android:textAlignment="center"
+            android:textSize="@dimen/editTextSize"/>
+
+        <Spinner
+            android:id="@+id/diceSizeSpinner"
+            android:layout_width="@dimen/spinnerWidth"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:textAlignment="center"/>
+
+        <TextView
+            android:id="@+id/plusTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:text="+"
+            android:textAlignment="center"
+            android:textSize="@dimen/plusTextSize"
+            tools:ignore="HardcodedText"/>
+
+        <EditText
+            android:id="@+id/modifierEditText"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:ems="@integer/editTextEms"
+            android:hint="@string/modifierHint"
+            android:inputType="numberSigned"
+            android:maxLength="@integer/maxNumDigits"
+            android:textAlignment="center"
+            android:textSize="@dimen/editTextSize"/>
+
+        <TextView
+            android:id="@+id/totalTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:width="@dimen/rollTotalTextViewWidth"
+            android:gravity="center_vertical|center_horizontal"
+            android:textAlignment="center"
+            android:textSize="@dimen/editTextSize"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/rollResultsTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/rollResultsTextSize"/>
+
+</LinearLayout>

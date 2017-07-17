@@ -8,7 +8,6 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StrikethroughSpan;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,6 +16,7 @@ import java.util.Random;
 // TODO: options
 // TODO: reset total and roll results after changing a field
 // TODO: Shadowrun style rollsSpannable
+// TODO: DiceRoll factory
 
 public class DiceRoll implements Parcelable {
 
@@ -33,6 +33,8 @@ public class DiceRoll implements Parcelable {
     private static final int DEFAULT_NUM_DICE = 1;
     private static final int DEFAULT_DICE_SIZE = 4;
     private static final int DEFAULT_MODIFIER = 0;
+    private static final long DEFAULT_OPTIONS = 0L;
+    static int DEFAULT_COLOR;
 
     public static final Creator<DiceRoll> CREATOR = new Creator<DiceRoll>() {
         @Override
@@ -56,13 +58,15 @@ public class DiceRoll implements Parcelable {
     private SpannableStringBuilder rollsSpannable;
     private String total;
     private long options;
+    private int color;
 
 
-    public DiceRoll(int numDice, int diceSize, int modifier, long options) {
+    public DiceRoll(int numDice, int diceSize, int modifier, long options, int color) {
         this.numDice = numDice;
         this.diceSize = diceSize;
         this.modifier = modifier;
         this.options = options;
+        this.color = color;
 
         rollList = new ArrayList<>();
         total = "";
@@ -70,7 +74,7 @@ public class DiceRoll implements Parcelable {
     }
 
     public DiceRoll() {
-        this(DEFAULT_NUM_DICE, DEFAULT_DICE_SIZE, DEFAULT_MODIFIER, 0L);
+        this(DEFAULT_NUM_DICE, DEFAULT_DICE_SIZE, DEFAULT_MODIFIER, DEFAULT_OPTIONS, DEFAULT_COLOR);
     }
 
     private DiceRoll(Parcel in) {
@@ -79,31 +83,54 @@ public class DiceRoll implements Parcelable {
         modifier = in.readInt();
         total = in.readString();
         options = in.readLong();
+        color = in.readInt();
         rollList = in.readArrayList(Integer.class.getClassLoader());
         rollsSpannable = new SpannableStringBuilder(TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(in));
-        Log.d(LOG_TAG, rollsSpannable.getSpans(0, rollsSpannable.length(), Object.class).length + "");
     }
 
 
     public void resetRollsAndTotal() {
         total = "";
         rollList.clear();
+        clearRollsSpannable();
+    }
+
+    private void clearRollsSpannable() {
         rollsSpannable.clear();
         rollsSpannable.clearSpans();
     }
 
     public void rollDice() {
-        resetRollsAndTotal();
-
-        // initial rollsSpannable
+        rollList.clear();
         for (int i = 0; i < numDice; ++i) {
             rollList.add(getOneRoll());
         }
 
-        if (rerollOnesOption()) rerollOnes();
-        if (sortRollsOption()) Collections.sort(rollList);
+        processOptionsAndCalcResults();
+    }
 
-        // calculate roll total and make roll results string
+    private void processOptionsAndCalcResults() {
+        if (rerollOnesOption()) rerollOnes();
+        if (sortRollsOption()) sortRolls();
+
+        calcTotalAndRollResults();
+    }
+
+    private void rerollOnes() {
+        for (int i = 0; i < rollList.size(); ++i) {
+            while (rollList.get(i) == 1) {
+                rollList.set(i, getOneRoll());
+            }
+        }
+    }
+
+    private void sortRolls() {
+        Collections.sort(rollList);
+    }
+
+    private void calcTotalAndRollResults() {
+        clearRollsSpannable();
+
         int currTotal = modifier;
         int currLowest = Integer.MAX_VALUE;
         int lowestStart = -1;
@@ -141,39 +168,8 @@ public class DiceRoll implements Parcelable {
         total = "" + currTotal;
     }
 
-    public void rerollOnes() {
-        for (int i = 0; i < rollList.size(); ++i) {
-            while (rollList.get(i) == 1) {
-                rollList.set(i, getOneRoll());
-            }
-        }
-    }
-
     private int getOneRoll() {
         return RAND.nextInt(diceSize) + 1;
-    }
-
-    @Override
-    public String toString() {
-        return numDice + "d" + diceSize + "+" + modifier;
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeInt(numDice);
-        dest.writeInt(diceSize);
-        dest.writeInt(modifier);
-        dest.writeString(total);
-        dest.writeLong(options);
-        dest.writeList(rollList);
-        /*dest.writeString(rollsSpannable.toString());
-        dest.writeArray(rollsSpannable.getSpans(0, rollsSpannable.length(), Object.class));*/
-        TextUtils.writeToParcel(rollsSpannable, dest, flags);
     }
 
     public void setNumDice(int numDice) {
@@ -188,16 +184,35 @@ public class DiceRoll implements Parcelable {
         this.modifier = modifier;
     }
 
-    public void setOptions(long options) {
-        this.options = options;
+    // Returns true if options are changed, false if options are the same
+    public boolean setOptions(long options) {
+        if (this.options != options) {
+            this.options = options;
+            processOptionsAndCalcResults();
+            return true;
+        }
+        return false;
     }
 
-    public void setDefaultNumDice() {
+    // Returns true if color is changed, false if color is the same
+    public boolean setColor(int color) {
+        if (this.color != color) {
+            this.color = color;
+            return true;
+        }
+        return false;
+    }
+
+    public void setToDefaultNumDice() {
         this.numDice = DEFAULT_NUM_DICE;
     }
 
-    public void setDefaultModifier() {
+    public void setToDefaultModifier() {
         this.modifier = DEFAULT_MODIFIER;
+    }
+
+    public static void setDefaultColor(int color) {
+        DEFAULT_COLOR = color;
     }
 
     public String getNumDice() {
@@ -214,6 +229,10 @@ public class DiceRoll implements Parcelable {
 
     public long getOptions() {
         return options;
+    }
+
+    public int getColor() {
+        return color;
     }
 
     public String getTotal() {
@@ -239,4 +258,27 @@ public class DiceRoll implements Parcelable {
     public boolean sortRollsOption() {
         return (options & SORT_ROLLS) != 0;
     }
+
+    @Override
+    public String toString() {
+        return numDice + "d" + diceSize + "+" + modifier;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(numDice);
+        dest.writeInt(diceSize);
+        dest.writeInt(modifier);
+        dest.writeString(total);
+        dest.writeLong(options);
+        dest.writeInt(color);
+        dest.writeList(rollList);
+        TextUtils.writeToParcel(rollsSpannable, dest, flags);
+    }
+
 }

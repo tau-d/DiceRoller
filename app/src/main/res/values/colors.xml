@@ -3,4 +3,36 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+
+    <color name="translucent">#00000000</color>
+    <color name="black">#000000</color>
+
+    <color name="default_color">@android:color/white</color>
+    <color name="bright_pink">#FF007F</color>
+    <color name="red">#ff0000</color>
+    <color name="orange">#FF7F00</color>
+    <color name="yellow">#FFFF00</color>
+    <color name="chartreuse">#7FFF00</color>
+    <color name="green">#00FF00</color>
+    <color name="dark_green">#1b5e20</color>
+    <color name="spring_green">#00FF7F</color>
+    <color name="cyan">#00FFFF</color>
+    <color name="azure">#007fff</color>
+    <color name="blue">#0000FF</color>
+    <color name="violet">#7F00FF</color>
+    <color name="magenta">#FF00FF</color>
+
+    <array name="textColors">
+        <item>@color/default_color</item>
+        <item>@color/red</item>
+        <item>@color/orange</item>
+        <item>@color/yellow</item>
+        <item>@color/dark_green</item>
+        <item>@color/chartreuse</item>
+        <item>@color/blue</item>
+        <item>@color/cyan</item>
+        <item>@color/violet</item>
+        <item>@color/magenta</item>
+    </array>
+
 </resources>

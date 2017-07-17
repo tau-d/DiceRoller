@@ -5,6 +5,7 @@
           android:paddingLeft="@dimen/spinnerItemPadding"
           android:paddingRight="@dimen/spinnerItemPadding"
           android:textAlignment="textEnd"
+          android:textColor="?attr/editTextColor"
           android:textSize="@dimen/editTextSize">
 
 </TextView>

@@ -13,7 +13,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String LOG_TAG = "DatabaseHelper";
 
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
     private static final String DATABASE_NAME = "my_dice_roller_database";
 
     private static final String TABLE_DICE_SET = "dice_set";
@@ -28,6 +28,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COL_ROLL_DICE_SIZE = "dice_size";
     private static final String COL_ROLL_MODIFIER = "modifier";
     private static final String COL_ROLL_OPTIONS = "options";
+    private static final String COL_ROLL_COLOR = "color";
 
     private static final String TABLE_CREATE_DICE_SET =
             "CREATE TABLE " + TABLE_DICE_SET + " (" +
@@ -43,6 +44,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COL_ROLL_DICE_SIZE + " INT NOT NULL, " +
                     COL_ROLL_MODIFIER + " INT NOT NULL, " +
                     COL_ROLL_OPTIONS + " INT NOT NULL, " +
+                    COL_ROLL_COLOR + " INT NOT NULL, " +
                     "FOREIGN KEY (" + COL_ROLL_SET + ") REFERENCES " + TABLE_DICE_SET + "(" + COL_SET_ID + ")" +
                 ");";
 
@@ -55,7 +57,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static Cursor getAllDiceRollsInSet(SQLiteDatabase db, Cursor diceSetCursor) {
         long setId = diceSetCursor.getLong(diceSetCursor.getColumnIndex(COL_SET_ID));
 
-        String[] cols = { COL_ROLL_NUM_DICE, COL_ROLL_DICE_SIZE, COL_ROLL_MODIFIER, COL_ROLL_OPTIONS };
+        String[] cols = { COL_ROLL_NUM_DICE, COL_ROLL_DICE_SIZE, COL_ROLL_MODIFIER, COL_ROLL_OPTIONS, COL_ROLL_COLOR};
         String selection = COL_ROLL_SET + " = ?";
         String[] selectionArgs = { Long.toString(setId) };
 
@@ -87,6 +89,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             rollValues.put(COL_ROLL_DICE_SIZE, roll.getDiceSize());
             rollValues.put(COL_ROLL_MODIFIER, roll.getModifier());
             rollValues.put(COL_ROLL_OPTIONS, roll.getOptions());
+            rollValues.put(COL_ROLL_COLOR, roll.getColor());
+
             long rowId = db.insert(TABLE_DICE_ROLL, null, rollValues);
             if (rowId == -1) {
                 Log.d(LOG_TAG, "Transaction failed: error inserting a dice roll\n" + rollValues);
@@ -122,7 +126,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return new DiceRoll(c.getInt(c.getColumnIndex(COL_ROLL_NUM_DICE)),
                 c.getInt(c.getColumnIndex(COL_ROLL_DICE_SIZE)),
                 c.getInt(c.getColumnIndex(COL_ROLL_MODIFIER)),
-                c.getLong(c.getColumnIndex(COL_ROLL_OPTIONS))
+                c.getLong(c.getColumnIndex(COL_ROLL_OPTIONS)),
+                c.getInt(c.getColumnIndex(COL_ROLL_COLOR))
             );
     }
 

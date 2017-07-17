@@ -23,4 +23,5 @@
     <string name="save">Save</string>
     <string name="helpDialogMessage">Long click an item to edit its options or remove it.</string>
     <string name="loadDiceSetDialogTitle">Load a dice set:</string>
+    <string name="chooseColor">Text\nColor:</string>
 </resources>

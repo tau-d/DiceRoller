@@ -3,10 +3,14 @@
     <dimen name="plusTextSize">24sp</dimen>
     <dimen name="editTextSize">20sp</dimen>
     <dimen name="rollResultsTextSize">16sp</dimen>
-    <dimen name="spinnerWidth">25dp</dimen>
+    <dimen name="spinnerWidth">25sp</dimen>
     <dimen name="spinnerItemPadding">8dp</dimen>
     <dimen name="activityPadding">8dp</dimen>
     <dimen name="activityMargin">8dp</dimen>
     <dimen name="saveEditTextPadding">10dp</dimen>
     <dimen name="rollTotalTextViewWidth">50dp</dimen>
+    <dimen name="colorSquareLength">20dp</dimen>
+    <dimen name="columnSpacing">10dp</dimen>
+    <dimen name="columnWidth">30dp</dimen>
+    <dimen name="colorSquarePadding">3dp</dimen>
 </resources>

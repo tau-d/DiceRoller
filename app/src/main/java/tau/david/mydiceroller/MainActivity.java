@@ -3,9 +3,11 @@ package tau.david.mydiceroller;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.res.TypedArray;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -22,6 +24,7 @@ import android.widget.CheckBox;
 import android.widget.CheckedTextView;
 import android.widget.CursorAdapter;
 import android.widget.EditText;
+import android.widget.GridView;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -31,6 +34,9 @@ import java.util.List;
 
 // TODO: constraint layout
 // TODO: shake to roll setting
+// TODO: custom dice sizes?
+// TODO: custom total roll colors, gridview/listview?
+// TODO: use @styles
 
 public class MainActivity extends AppCompatActivity {
 
@@ -61,6 +67,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        TypedArray themeArray = MainActivity.this.getTheme().obtainStyledAttributes(new int[] {android.R.attr.editTextColor});
+        int defaultTextColour = themeArray.getColor(0, 0);
+        themeArray.recycle();
+
+        DiceRoll.setDefaultColor(defaultTextColour);
 
         if (savedInstanceState != null) {
             mDiceRollerAdapter = new MyDiceRollerAdapter(this,
@@ -129,11 +141,7 @@ public class MainActivity extends AppCompatActivity {
 
         private void initSpinnerAdapter(Context context) {
             int[] intDiceSizeArray = getResources().getIntArray(R.array.dice_size_array);
-            Integer[] integerDiceSizeArray = new Integer[intDiceSizeArray.length];
-            for (int i = 0; i < intDiceSizeArray.length; i++) {
-                integerDiceSizeArray[i] = Integer.valueOf(intDiceSizeArray[i]);
-            }
-            mSpinnerAdapter = new ArrayAdapter<>(context, R.layout.spinner_item, integerDiceSizeArray);
+            mSpinnerAdapter = new ArrayAdapter<>(context, R.layout.spinner_item, integerArrayFromIntArray(intDiceSizeArray));
         }
 
         public void add(DiceRoll diceRoll) {
@@ -168,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
             return items;
         }
 
-        private class ViewHolder {
+        private class DiceRollViewHolder {
             private int currPosition;
 
             private EditText numDiceEditText;
@@ -178,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
             private TextView totalTextView;
             private TextView rollResultsTextView;
 
-            private ViewHolder(View convertView) {
+            private DiceRollViewHolder(View convertView) {
                 numDiceEditText = (EditText) convertView.findViewById(R.id.numDiceEditText);
                 diceSizeSpinner = (Spinner) convertView.findViewById(R.id.diceSizeSpinner);
                 plusTextView = (TextView) convertView.findViewById(R.id.plusTextView);
@@ -220,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
                             try {
                                 item.setNumDice(Integer.parseInt(text));
                             } catch (NumberFormatException e) {
-                                item.setDefaultNumDice();
+                                item.setToDefaultNumDice();
                             }
                             item.resetRollsAndTotal();
                             mDiceRollerAdapter.notifyDataSetChanged();
@@ -242,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
                             try {
                                 item.setModifier(Integer.parseInt(text));
                             } catch (NumberFormatException e) {
-                                item.setDefaultModifier();
+                                item.setToDefaultModifier();
                             }
                             item.resetRollsAndTotal();
                             mDiceRollerAdapter.notifyDataSetChanged();
@@ -277,13 +285,23 @@ public class MainActivity extends AppCompatActivity {
                 final CheckBox dropLowestCheckBox = (CheckBox) v.findViewById(R.id.dropLowestCheckBox);
                 final CheckBox highlightMinMaxCheckBox = (CheckBox) v.findViewById(R.id.highlightMinMaxCheckBox);
                 final CheckBox sortRollsCheckBox = (CheckBox) v.findViewById(R.id.sortRollsCheckBox);
-                Button deleteButton = (Button) v.findViewById(R.id.deleteDialogOptionButton);
+                final GridView colorGridView = (GridView) v.findViewById(R.id.colorGridView);
+                final Button deleteButton = (Button) v.findViewById(R.id.deleteDialogOptionButton);
+
+                int[] textColors = MainActivity.this.getResources().getIntArray(R.array.textColors);
+                Integer[] colorArray = integerArrayFromIntArray(textColors);
+                colorArray[0] = DiceRoll.DEFAULT_COLOR;
+
+                // TODO: color selector
+                final ColorSelectorAdapter colorAdapter = new ColorSelectorAdapter(MainActivity.this, -1, colorArray);
+                colorGridView.setAdapter(colorAdapter);
 
                 DiceRoll item = getCurrItem();
                 rerollOnesCheckBox.setChecked(item.rerollOnesOption());
                 dropLowestCheckBox.setChecked(item.dropLowestOption());
                 highlightMinMaxCheckBox.setChecked(item.highlightMinMaxOption());
                 sortRollsCheckBox.setChecked(item.sortRollsOption());
+                colorAdapter.setSelectedColor(item.getColor());
 
                 builder.setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
                     @Override
@@ -293,7 +311,11 @@ public class MainActivity extends AppCompatActivity {
                                 (dropLowestCheckBox.isChecked() ? DiceRoll.DROP_LOWEST : 0) |
                                 (highlightMinMaxCheckBox.isChecked() ? DiceRoll.HIGHLIGHT_MIN_MAX: 0) |
                                 (sortRollsCheckBox.isChecked() ? DiceRoll.SORT_ROLLS : 0);
-                        item.setOptions(options);
+                        int color = colorAdapter.getSelectedColor();
+
+                        if (item.setOptions(options) || item.setColor(color)) {
+                            mDiceRollerAdapter.notifyDataSetChanged();
+                        }
                     }
                 });
 
@@ -317,6 +339,7 @@ public class MainActivity extends AppCompatActivity {
                 optionsDialog.show();
             }
 
+            @Nullable
             private DiceRoll getCurrItem() {
                 // prevent strange interaction with reset button and focus changing
                 if (currPosition >= mDiceRollerAdapter.getCount()) return null;
@@ -345,14 +368,14 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public View getView(int listItemPosition, View convertView, ViewGroup parent) {
-            ViewHolder holder;
+            DiceRollViewHolder holder;
 
             if (convertView == null) {
                 convertView = mInflater.inflate(R.layout.diceroll_list_entry, parent, false);
-                holder = new ViewHolder(convertView);
+                holder = new DiceRollViewHolder(convertView);
                 convertView.setTag(holder);
             } else {
-                holder = (ViewHolder) convertView.getTag();
+                holder = (DiceRollViewHolder) convertView.getTag();
             }
             holder.currPosition = listItemPosition; // must update list position in holder
 
@@ -362,6 +385,7 @@ public class MainActivity extends AppCompatActivity {
             holder.diceSizeSpinner.setSelection(mSpinnerAdapter.getPosition(diceRoll.getDiceSize()));
             holder.modifierEditText.setText(diceRoll.getModifier());
             holder.totalTextView.setText(diceRoll.getTotal());
+            holder.totalTextView.setTextColor(diceRoll.getColor());
             holder.rollResultsTextView.setText(diceRoll.getRollsSpannable(), TextView.BufferType.SPANNABLE);
 
             return convertView;
@@ -534,4 +558,11 @@ public class MainActivity extends AppCompatActivity {
         outState.putParcelableArrayList(DICE_ROLL_LIST_KEY, mDiceRollerAdapter.getList());
     }
 
+    private static Integer[] integerArrayFromIntArray(int[] array) {
+        Integer[] integerArray = new Integer[array.length];
+        for (int i = 0; i < array.length; i++) {
+            integerArray[i] = Integer.valueOf(array[i]);
+        }
+        return integerArray;
+    }
 }

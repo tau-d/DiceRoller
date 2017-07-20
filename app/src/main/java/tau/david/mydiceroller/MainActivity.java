@@ -35,8 +35,8 @@ import java.util.List;
 // TODO: constraint layout
 // TODO: shake to roll setting
 // TODO: custom dice sizes?
-// TODO: custom total roll colors, gridview/listview?
 // TODO: use @styles
+// TODO: conditional rolls (ex. normally roll 1d6+2 damage, but on 19-20 crit range, roll 2d6+2 damage)
 
 public class MainActivity extends AppCompatActivity {
 
@@ -292,7 +292,6 @@ public class MainActivity extends AppCompatActivity {
                 Integer[] colorArray = integerArrayFromIntArray(textColors);
                 colorArray[0] = DiceRoll.DEFAULT_COLOR;
 
-                // TODO: color selector
                 final ColorSelectorAdapter colorAdapter = new ColorSelectorAdapter(MainActivity.this, -1, colorArray);
                 colorGridView.setAdapter(colorAdapter);
 

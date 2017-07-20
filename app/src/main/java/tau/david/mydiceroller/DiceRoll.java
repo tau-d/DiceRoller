@@ -13,9 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 
-// TODO: options
-// TODO: reset total and roll results after changing a field
-// TODO: Shadowrun style rollsSpannable
+// TODO: Shadowrun style rolls
 // TODO: DiceRoll factory
 
 public class DiceRoll implements Parcelable {
@@ -113,7 +111,7 @@ public class DiceRoll implements Parcelable {
         if (rerollOnesOption()) rerollOnes();
         if (sortRollsOption()) sortRolls();
 
-        calcTotalAndRollResults();
+        if (!rollList.isEmpty()) calcTotalAndRollResults();
     }
 
     private void rerollOnes() {
@@ -160,7 +158,7 @@ public class DiceRoll implements Parcelable {
             rollsSpannable.append(' ');
         }
 
-        if (dropLowestOption()) {
+        if (dropLowestOption() && lowestStart >= 0) {
             currTotal -= currLowest;
             rollsSpannable.setSpan(new StrikethroughSpan(), lowestStart, lowestEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }

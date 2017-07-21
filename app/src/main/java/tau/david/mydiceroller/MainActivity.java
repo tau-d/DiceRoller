@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -28,6 +29,7 @@ import android.widget.GridView;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -462,7 +464,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openSaveDiceSetDialog() {
-        // TODO: check if name is already used
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.saveDiceSetDialogTitle);
 
@@ -474,9 +475,25 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 String setName = saveSetNameEditText.getText().toString();
                 if (setName.isEmpty()) {
-                    // Toast error
+                    String emptyNameError = MainActivity.this.getResources().getString(R.string.saveDiceSetEmptyNameError);
+                    Toast toast = Toast.makeText(MainActivity.this, emptyNameError, Toast.LENGTH_LONG);
+                    toast.setGravity(Gravity.CENTER, 0, 0);
+                    toast.show();
                 } else {
-                    saveDiceSet(setName);
+                    SQLiteDatabase db = mDatabaseOpenHelper.getReadableDatabase();
+                    boolean isDuplicateName = DatabaseHelper.isDiceSetNameUsed(db, setName);
+                    db.close();
+
+                    if (isDuplicateName) {
+                        // TODO: Ask to overwrite
+                        // TODO: Autocomplete existing set names?
+                        String duplicateNameError = MainActivity.this.getResources().getString(R.string.saveDiceSetDuplicateNameError);
+                        Toast toast = Toast.makeText(MainActivity.this, duplicateNameError, Toast.LENGTH_LONG);
+                        toast.setGravity(Gravity.CENTER, 0, 0);
+                        toast.show();
+                    } else {
+                        saveDiceSet(setName);
+                    }
                 }
             }
         });

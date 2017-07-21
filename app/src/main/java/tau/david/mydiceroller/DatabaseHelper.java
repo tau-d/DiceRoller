@@ -53,6 +53,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
+    public static boolean isDiceSetNameUsed(SQLiteDatabase db, String setName) {
+        String selection = COL_SET_NAME + " = ?";
+        String[] selectionArgs = { setName };
+
+        Cursor c = db.query(TABLE_DICE_SET, null, selection, selectionArgs, null, null, null);
+        try {
+            return c.getCount() > 0;
+        } finally {
+            c.close();
+        }
+    }
 
     public static Cursor getAllDiceRollsInSet(SQLiteDatabase db, Cursor diceSetCursor) {
         long setId = diceSetCursor.getLong(diceSetCursor.getColumnIndex(COL_SET_ID));
@@ -66,7 +77,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public static Cursor getDiceSets(SQLiteDatabase db) {
         String[] cols = { COL_SET_ID, COL_SET_NAME };
-        return db.query(TABLE_DICE_SET, cols, null, null, null, null, null);
+        String orderBy = COL_SET_NAME + " COLLATE NOCASE ASC";
+        return db.query(TABLE_DICE_SET, cols, null, null, null, null, orderBy);
     }
 
     public static void saveDiceSet(SQLiteDatabase db, String setName, List<DiceRoll> diceRolls) {

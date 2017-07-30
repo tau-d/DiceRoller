@@ -14,16 +14,16 @@ import java.util.Collections;
 import java.util.Random;
 
 // TODO: Shadowrun style rolls
-// TODO: DiceRoll factory
+// TODO: DiceRoll factory?
 
-public class DiceRoll implements Parcelable {
+class DiceRoll implements Parcelable {
 
     private static final String LOG_TAG = "DiceRoll";
 
-    public static final long REROLL_ONES = 1;
-    public static final long DROP_LOWEST = 1 << 1;
-    public static final long HIGHLIGHT_MIN_MAX = 1 << 2;
-    public static final long SORT_ROLLS = 1 << 3;
+    static final long REROLL_ONES = 1;
+    static final long DROP_LOWEST = 1 << 1;
+    static final long HIGHLIGHT_MIN_MAX = 1 << 2;
+    static final long SORT_ROLLS = 1 << 3;
 
     private static final int MIN_COLOR = Color.RED;
     private static final int MAX_COLOR = Color.GREEN;
@@ -32,7 +32,10 @@ public class DiceRoll implements Parcelable {
     private static final int DEFAULT_DICE_SIZE = 4;
     private static final int DEFAULT_MODIFIER = 0;
     private static final long DEFAULT_OPTIONS = 0L;
-    static int DEFAULT_COLOR;
+    private static int DEFAULT_COLOR = Color.WHITE;
+
+    private static final int MIN_NUM_DICE = 1;
+    private static final int MIN_DICE_SIZE = 2;
 
     public static final Creator<DiceRoll> CREATOR = new Creator<DiceRoll>() {
         @Override
@@ -60,8 +63,9 @@ public class DiceRoll implements Parcelable {
 
 
     public DiceRoll(int numDice, int diceSize, int modifier, long options, int color) {
-        this.numDice = numDice;
-        this.diceSize = diceSize;
+        setNumDice(numDice);
+        setDiceSize(diceSize);
+
         this.modifier = modifier;
         this.options = options;
         this.color = color;
@@ -76,8 +80,8 @@ public class DiceRoll implements Parcelable {
     }
 
     private DiceRoll(Parcel in) {
-        numDice = in.readInt();
-        diceSize = in.readInt();
+        setNumDice(in.readInt());
+        setDiceSize(in.readInt());
         modifier = in.readInt();
         total = in.readString();
         options = in.readLong();
@@ -87,7 +91,7 @@ public class DiceRoll implements Parcelable {
     }
 
 
-    public void resetRollsAndTotal() {
+    void resetRollsAndTotal() {
         total = "";
         rollList.clear();
         clearRollsSpannable();
@@ -98,7 +102,7 @@ public class DiceRoll implements Parcelable {
         rollsSpannable.clearSpans();
     }
 
-    public void rollDice() {
+    void rollDice() {
         rollList.clear();
         for (int i = 0; i < numDice; ++i) {
             rollList.add(getOneRoll());
@@ -170,20 +174,34 @@ public class DiceRoll implements Parcelable {
         return RAND.nextInt(diceSize) + 1;
     }
 
-    public void setNumDice(int numDice) {
-        this.numDice = numDice;
+    // Return false if numDice parameter was invalid
+    boolean setNumDice(int numDice) {
+        if (numDice < MIN_NUM_DICE) {
+            setToDefaultNumDice();
+            return false;
+        } else {
+            this.numDice = numDice;
+            return true;
+        }
     }
 
-    public void setDiceSize(int diceSize) {
-        this.diceSize = diceSize;
+    // Return false if diceSize parameter was invalid
+    boolean setDiceSize(int diceSize) {
+        if (diceSize < MIN_DICE_SIZE) {
+            setToDefaultDiceSize();
+            return false;
+        } else {
+            this.diceSize = diceSize;
+            return true;
+        }
     }
 
-    public void setModifier(int modifier) {
+    void setModifier(int modifier) {
         this.modifier = modifier;
     }
 
     // Returns true if options are changed, false if options are the same
-    public boolean setOptions(long options) {
+    boolean setOptions(long options) {
         if (this.options != options) {
             this.options = options;
             processOptionsAndCalcResults();
@@ -193,7 +211,7 @@ public class DiceRoll implements Parcelable {
     }
 
     // Returns true if color is changed, false if color is the same
-    public boolean setColor(int color) {
+    boolean setColor(int color) {
         if (this.color != color) {
             this.color = color;
             return true;
@@ -201,65 +219,90 @@ public class DiceRoll implements Parcelable {
         return false;
     }
 
-    public void setToDefaultNumDice() {
+    void setToDefaultNumDice() {
         this.numDice = DEFAULT_NUM_DICE;
     }
 
-    public void setToDefaultModifier() {
+    void setToDefaultDiceSize() {
+        this.diceSize = DEFAULT_DICE_SIZE;
+    }
+
+    void setToDefaultModifier() {
         this.modifier = DEFAULT_MODIFIER;
     }
 
-    public static void setDefaultColor(int color) {
+    static void setDefaultColor(int color) {
         DEFAULT_COLOR = color;
     }
 
-    public String getNumDice() {
-        return "" + numDice;
+    static int getDefaultColor() {
+        return DEFAULT_COLOR;
     }
 
-    public int getDiceSize() {
+    int getNumDice() {
+        return numDice;
+    }
+
+    int getDiceSize() {
         return diceSize;
     }
 
-    public String getModifier() {
+    int getModifier() {
+        return modifier;
+    }
+
+    String getNumDiceStr() {
+        return "" + numDice;
+    }
+
+    String getDiceSizeStr() {
+        return "" + diceSize;
+    }
+
+    String getModifierStr() {
         return "" + modifier;
     }
 
-    public long getOptions() {
+    long getOptions() {
         return options;
     }
 
-    public int getColor() {
+    int getColor() {
         return color;
     }
 
-    public String getTotal() {
+    String getTotal() {
         return total;
     }
 
-    public SpannableStringBuilder getRollsSpannable() {
+    SpannableStringBuilder getRollsSpannable() {
         return rollsSpannable;
     }
 
-    public boolean rerollOnesOption() {
+    boolean rerollOnesOption() {
         return (options & REROLL_ONES) != 0;
     }
 
-    public boolean dropLowestOption() {
+    boolean dropLowestOption() {
         return (options & DROP_LOWEST) != 0;
     }
 
-    public boolean highlightMinMaxOption() {
+    boolean highlightMinMaxOption() {
         return (options & HIGHLIGHT_MIN_MAX) != 0;
     }
 
-    public boolean sortRollsOption() {
+    boolean sortRollsOption() {
         return (options & SORT_ROLLS) != 0;
     }
 
     @Override
     public String toString() {
-        return numDice + "d" + diceSize + "+" + modifier;
+        if (modifier >= 0) {
+            return numDice + "d" + diceSize + "+" + modifier;
+        } else {
+            return numDice + "d" + diceSize + modifier;
+        }
+
     }
 
     @Override

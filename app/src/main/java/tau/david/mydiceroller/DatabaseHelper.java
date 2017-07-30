@@ -7,9 +7,10 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class DatabaseHelper extends SQLiteOpenHelper {
+class DatabaseHelper {
 
     private static final String LOG_TAG = "DatabaseHelper";
 
@@ -19,7 +20,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String TABLE_DICE_SET = "dice_set";
     private static final String COL_SET_ID = "_id"; // REFERENCED FOREIGN KEY
     private static final String COL_SET_NAME = "set_name";
-    //private static final String COL_DICE_SET_DESC = "dice_set_desc";
+    // private static final String COL_DICE_SET_DESC = "dice_set_desc";
 
     private static final String TABLE_DICE_ROLL = "dice_roll";
     private static final String COL_ROLL_ID = "_id";
@@ -49,39 +50,76 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 ");";
 
 
-    public DatabaseHelper(Context context) {
-        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+    private MyOpenHelper openHelper;
+
+    DatabaseHelper(Context context) {
+        openHelper = new MyOpenHelper(context);
     }
 
-    public static boolean isDiceSetNameUsed(SQLiteDatabase db, String setName) {
+
+    // Returns set_id with given set_name or -1 if there is no such set
+    long isDiceSetNameUsed(String setName) {
+        SQLiteDatabase db = openHelper.getReadableDatabase();
+
         String selection = COL_SET_NAME + " = ?";
         String[] selectionArgs = { setName };
 
         Cursor c = db.query(TABLE_DICE_SET, null, selection, selectionArgs, null, null, null);
-        try {
-            return c.getCount() > 0;
-        } finally {
-            c.close();
+
+        long id = -1;
+        if (c.getCount() > 0) {
+            c.moveToNext();
+            id = c.getLong(c.getColumnIndex(COL_SET_ID));
         }
+
+        c.close();
+        db.close();
+
+        return id;
     }
 
-    public static Cursor getAllDiceRollsInSet(SQLiteDatabase db, Cursor diceSetCursor) {
-        long setId = diceSetCursor.getLong(diceSetCursor.getColumnIndex(COL_SET_ID));
+    List<DiceRoll> getAllDiceRollsInSet(DiceSet diceSet) {
+        SQLiteDatabase db = openHelper.getReadableDatabase();
 
         String[] cols = { COL_ROLL_NUM_DICE, COL_ROLL_DICE_SIZE, COL_ROLL_MODIFIER, COL_ROLL_OPTIONS, COL_ROLL_COLOR};
         String selection = COL_ROLL_SET + " = ?";
-        String[] selectionArgs = { Long.toString(setId) };
+        String[] selectionArgs = { Long.toString(diceSet.id) };
 
-        return db.query(TABLE_DICE_ROLL, cols, selection, selectionArgs, null, null, null);
+        Cursor c = db.query(TABLE_DICE_ROLL, cols, selection, selectionArgs, null, null, null);
+
+        List<DiceRoll> list = new ArrayList<>(c.getCount());
+        while (c.moveToNext()) {
+            list.add(cursorToDiceRoll(c));
+        }
+
+        c.close();
+        db.close();
+
+        return list;
     }
 
-    public static Cursor getDiceSets(SQLiteDatabase db) {
+    List<DiceSet> getDiceSets() {
+        SQLiteDatabase db = openHelper.getReadableDatabase();
+
         String[] cols = { COL_SET_ID, COL_SET_NAME };
         String orderBy = COL_SET_NAME + " COLLATE NOCASE ASC";
-        return db.query(TABLE_DICE_SET, cols, null, null, null, null, orderBy);
+
+        Cursor c = db.query(TABLE_DICE_SET, cols, null, null, null, null, orderBy);
+
+        List<DiceSet> list = new ArrayList<>(c.getCount());
+        while (c.moveToNext()) {
+            list.add(cursorToDiceSet(c));
+        }
+
+        c.close();
+        db.close();
+
+        return list;
     }
 
-    public static void saveDiceSet(SQLiteDatabase db, String setName, List<DiceRoll> diceRolls) {
+    void saveDiceSet(String setName, List<DiceRoll> diceRolls) {
+        SQLiteDatabase db = openHelper.getWritableDatabase();
+
         db.beginTransaction();
 
         ContentValues diceSetValues = new ContentValues();
@@ -89,11 +127,61 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         long setId = db.insert(TABLE_DICE_SET, null, diceSetValues);
 
         if (setId == -1) {
-            Log.d(LOG_TAG, "Transaction failed: error inserting the dice set");
+            Log.d(LOG_TAG, "Save dice set transaction failed: error inserting the dice set");
             db.endTransaction();
             return;
         }
 
+        if (!insertDiceRolls(db, setId, diceRolls)) {
+            Log.d(LOG_TAG, "Save dice set transaction failed");
+            db.endTransaction();
+            return;
+        }
+
+        db.setTransactionSuccessful();
+        db.endTransaction();
+
+        db.close();
+    }
+
+    void overwriteDiceSet(long duplicateSetId, List<DiceRoll> diceRolls) {
+        SQLiteDatabase db = openHelper.getWritableDatabase();
+
+        db.beginTransaction();
+
+        deleteDiceRolls(db, duplicateSetId);
+
+        if (!insertDiceRolls(db, duplicateSetId, diceRolls)) {
+            db.endTransaction();
+            Log.d(LOG_TAG, "Dice set overwrite transaction aborted");
+            return;
+        }
+
+        db.setTransactionSuccessful();
+        db.endTransaction();
+
+        db.close();
+    }
+
+    void deleteDiceSet(DiceSet diceSet) {
+        SQLiteDatabase db = openHelper.getWritableDatabase();
+
+        db.beginTransaction();
+
+        deleteDiceRolls(db, diceSet.id);
+
+        String whereClause = COL_SET_ID + " = ?";
+        String[] whereArgs = { Long.toString(diceSet.id) };
+        db.delete(TABLE_DICE_SET, whereClause, whereArgs);
+
+        db.setTransactionSuccessful();
+        db.endTransaction();
+
+        db.close();
+    }
+
+    // Returns true if there were no errors, returns false if there was an error
+    private static boolean insertDiceRolls(SQLiteDatabase db, long setId, List<DiceRoll> diceRolls) {
         for (DiceRoll roll : diceRolls) {
             ContentValues rollValues = new ContentValues();
             rollValues.put(COL_ROLL_SET, setId);
@@ -105,36 +193,24 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
             long rowId = db.insert(TABLE_DICE_ROLL, null, rollValues);
             if (rowId == -1) {
-                Log.d(LOG_TAG, "Transaction failed: error inserting a dice roll\n" + rollValues);
-                db.endTransaction();
-                return;
+                Log.d(LOG_TAG, "Error inserting dice roll:\n" + rollValues);
+                return false;
             }
         }
-
-        db.setTransactionSuccessful();
-        db.endTransaction();
+        return true;
     }
 
-    public static void deleteDiceSet(SQLiteDatabase db, Cursor diceSetCursor) {
-        long setId = diceSetCursor.getLong(diceSetCursor.getColumnIndex(COL_SET_ID));
-        db.beginTransaction();
-
+    private static void deleteDiceRolls(SQLiteDatabase db, long setId) {
         String whereClause = COL_ROLL_SET + " = ?";
         String[] whereArgs = { Long.toString(setId) };
         db.delete(TABLE_DICE_ROLL, whereClause, whereArgs);
-
-        whereClause = COL_SET_ID + " = ?";
-        db.delete(TABLE_DICE_SET, whereClause, whereArgs);
-
-        db.setTransactionSuccessful();
-        db.endTransaction();
     }
 
-    public static void deleteDatabase(Context context) {
+    static void deleteDatabase(Context context) {
         context.deleteDatabase(DatabaseHelper.DATABASE_NAME);
     }
 
-    public static DiceRoll cursorToDiceRoll(Cursor c) {
+    static DiceRoll cursorToDiceRoll(Cursor c) {
         return new DiceRoll(c.getInt(c.getColumnIndex(COL_ROLL_NUM_DICE)),
                 c.getInt(c.getColumnIndex(COL_ROLL_DICE_SIZE)),
                 c.getInt(c.getColumnIndex(COL_ROLL_MODIFIER)),
@@ -143,36 +219,35 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             );
     }
 
-    public static String cursorToSetName(Cursor c) {
-        return c.getString(c.getColumnIndex(COL_SET_NAME));
+    static DiceSet cursorToDiceSet(Cursor c) {
+        return new DiceSet(c.getString(c.getColumnIndex(COL_SET_NAME)),
+                c.getLong(c.getColumnIndex(COL_SET_ID))
+            );
     }
 
-    @Override
-    public void onCreate(SQLiteDatabase db) {
-        db.execSQL(TABLE_CREATE_DICE_SET);
-        db.execSQL(TABLE_CREATE_DICE_ROLL);
-        //onCreateTest(db);
-    }
-
-    @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        Log.d(LOG_TAG, "Upgrading database");
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_DICE_ROLL);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_DICE_SET);
-        onCreate(db);
-    }
 
     // Testing methods
-    public static Cursor getAllDiceRollsInSet(SQLiteDatabase db) {
+    List<DiceRoll> getAllDiceRolls() {
+        SQLiteDatabase db = openHelper.getReadableDatabase();
+
         Cursor c = db.query(TABLE_DICE_ROLL, null, null, null, null, null, null);
+
+        List<DiceRoll> list = new ArrayList<>(c.getCount());
         while (c.moveToNext()) {
             Log.d(LOG_TAG, "" + c.getPosition());
             Log.d(LOG_TAG, c.toString());
+            list.add(cursorToDiceRoll(c));
         }
-        return c;
+
+        c.close();
+        db.close();
+
+        return list;
     }
 
-    private void onCreateTest(SQLiteDatabase db) {
+    private void onCreateTest() {
+        SQLiteDatabase db = openHelper.getWritableDatabase();
+
         Log.d(LOG_TAG, TABLE_CREATE_DICE_SET);
         Log.d(LOG_TAG, TABLE_CREATE_DICE_ROLL);
 
@@ -199,5 +274,30 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         rowId = db.insert(TABLE_DICE_ROLL, null, testRoll2);
 
         Log.d(LOG_TAG, "row id: " + rowId);
+
+        db.close();
+    }
+
+
+    private class MyOpenHelper extends SQLiteOpenHelper {
+
+        public MyOpenHelper(Context context) {
+            super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        }
+
+        @Override
+        public void onCreate(SQLiteDatabase db) {
+            db.execSQL(TABLE_CREATE_DICE_SET);
+            db.execSQL(TABLE_CREATE_DICE_ROLL);
+            //onCreateTest(db);
+        }
+
+        @Override
+        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            Log.d(LOG_TAG, "Upgrading database");
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_DICE_ROLL);
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_DICE_SET);
+            onCreate(db);
+        }
     }
 }

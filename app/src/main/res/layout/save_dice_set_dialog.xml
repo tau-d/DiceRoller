@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<EditText android:id="@+id/saveSetNameEditText"
-          xmlns:android="http://schemas.android.com/apk/res/android"
-          android:layout_width="match_parent"
-          android:layout_height="match_parent"
-          android:hint="@string/setNameHint"
-          android:maxLength="@integer/maxSetNameLength"
-          android:padding="@dimen/saveEditTextPadding"
-          android:textAlignment="center">
+<AutoCompleteTextView android:id="@+id/saveSetNameEditText"
+                      xmlns:android="http://schemas.android.com/apk/res/android"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:layout_margin="@dimen/saveEditTextMargin"
+                      android:hint="@string/setNameHint"
+                      android:maxLength="@integer/maxSetNameLength"
+                      android:textAlignment="center">
 
-</EditText>
+</AutoCompleteTextView>

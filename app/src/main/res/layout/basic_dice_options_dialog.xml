@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    tools:layout_editor_absoluteX="0dp"
+    tools:layout_editor_absoluteY="81dp">
+
+    <TextView
+        android:id="@+id/numDiceLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="0dp"
+        android:text="@string/numDiceLabel"
+        android:textSize="@dimen/editTextSize"
+        app:layout_constraintBaseline_toBaselineOf="@+id/numDiceEditText"
+        app:layout_constraintRight_toLeftOf="@+id/space"/>
+
+    <EditText
+        android:id="@+id/numDiceEditText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="0dp"
+        android:ems="@integer/maxNumDigits"
+        android:inputType="number"
+        android:maxLength="@integer/maxNumDigits"
+        android:textAlignment="center"
+        android:textSize="@dimen/editTextSize"
+        app:layout_constraintLeft_toRightOf="@+id/space"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="8dp"/>
+
+    <TextView
+        android:id="@+id/diceSizeLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/diceSizeLabel"
+        android:textSize="@dimen/editTextSize"
+        app:layout_constraintRight_toLeftOf="@+id/space"
+        app:layout_constraintBaseline_toBaselineOf="@+id/diceSizeEditText"
+        android:layout_marginRight="1dp"/>
+
+    <EditText
+        android:id="@+id/diceSizeEditText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="0dp"
+        android:layout_marginTop="8dp"
+        android:ems="@integer/maxNumDigits"
+        android:inputType="number"
+        android:maxLength="@integer/maxNumDigits"
+        android:textAlignment="center"
+        android:textSize="@dimen/editTextSize"
+        app:layout_constraintLeft_toRightOf="@+id/space"
+        app:layout_constraintTop_toBottomOf="@+id/numDiceEditText"/>
+
+    <TextView
+        android:id="@+id/modifierLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/modifierLabel"
+        android:textSize="@dimen/editTextSize"
+        app:layout_constraintBaseline_toBaselineOf="@+id/modifierEditText"
+        app:layout_constraintRight_toLeftOf="@+id/space"/>
+
+    <EditText
+        android:id="@+id/modifierEditText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="0dp"
+        android:layout_marginTop="8dp"
+        android:ems="@integer/maxNumDigits"
+        android:inputType="numberSigned"
+        android:maxLength="@integer/maxNumDigits"
+        android:textAlignment="center"
+        android:textSize="@dimen/editTextSize"
+        app:layout_constraintLeft_toRightOf="@+id/space"
+        app:layout_constraintTop_toBottomOf="@+id/diceSizeEditText"/>
+
+    <Space
+        android:id="@+id/space"
+        android:layout_width="wrap_content"
+        android:layout_height="137dp"
+        android:layout_marginLeft="8dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginRight="8dp"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="8dp"/>
+</android.support.constraint.ConstraintLayout>

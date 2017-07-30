@@ -1,11 +1,8 @@
 package tau.david.mydiceroller;
 
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.TypedArray;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -17,17 +14,14 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.CheckedTextView;
-import android.widget.CursorAdapter;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ListView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,9 +30,9 @@ import java.util.List;
 
 // TODO: constraint layout
 // TODO: shake to roll setting
-// TODO: custom dice sizes?
-// TODO: use @styles
+// TODO: use @styles?
 // TODO: conditional rolls (ex. normally roll 1d6+2 damage, but on 19-20 crit range, roll 2d6+2 damage)
+// TODO: improve lifecycle methods
 
 public class MainActivity extends AppCompatActivity {
 
@@ -48,21 +42,17 @@ public class MainActivity extends AppCompatActivity {
 
     private LayoutInflater mInflater;
     private MyDiceRollerAdapter mDiceRollerAdapter;
-    private DatabaseHelper mDatabaseOpenHelper;
+    private DatabaseHelper mDatabaseHelper;
 
     private void testDb() {
-        Log.d("test", "TESTING");
+        Log.d(LOG_TAG, "DB test");
 
         DatabaseHelper.deleteDatabase(this);
 
-        SQLiteDatabase db = mDatabaseOpenHelper.getReadableDatabase();
-
-        DatabaseHelper.getDiceSets(db);
-        Cursor rolls = DatabaseHelper.getAllDiceRollsInSet(db);
+        mDatabaseHelper.getDiceSets();
+        List<DiceRoll> rolls = mDatabaseHelper.getAllDiceRolls();
 
         mDiceRollerAdapter.loadDiceSet(rolls);
-
-        db.close();
     }
 
     @Override
@@ -70,21 +60,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mDatabaseHelper = new DatabaseHelper(this);
+        mInflater = getLayoutInflater();
+
         TypedArray themeArray = MainActivity.this.getTheme().obtainStyledAttributes(new int[] {android.R.attr.editTextColor});
         int defaultTextColour = themeArray.getColor(0, 0);
         themeArray.recycle();
-
         DiceRoll.setDefaultColor(defaultTextColour);
 
         if (savedInstanceState != null) {
-            mDiceRollerAdapter = new MyDiceRollerAdapter(this,
-                    savedInstanceState.<DiceRoll>getParcelableArrayList(DICE_ROLL_LIST_KEY));
+            mDiceRollerAdapter =
+                    new MyDiceRollerAdapter(savedInstanceState.<DiceRoll>getParcelableArrayList(DICE_ROLL_LIST_KEY));
         } else {
-            mDiceRollerAdapter = new MyDiceRollerAdapter(this);
+            mDiceRollerAdapter = new MyDiceRollerAdapter();
         }
-
-        mDatabaseOpenHelper = new DatabaseHelper(this);
-        mInflater = getLayoutInflater();
 
         final ListView listView = (ListView) findViewById(R.id.diceRollListView);
         listView.setAdapter(mDiceRollerAdapter);
@@ -122,17 +111,14 @@ public class MainActivity extends AppCompatActivity {
     private class MyDiceRollerAdapter extends BaseAdapter {
 
         private ArrayList<DiceRoll> items;
-        private ArrayAdapter<Integer> mSpinnerAdapter;
 
 
-        public MyDiceRollerAdapter(Context context) {
-            initSpinnerAdapter(context);
+        MyDiceRollerAdapter() {
             items = new ArrayList<>();
             items.add(new DiceRoll());
         }
 
-        public MyDiceRollerAdapter(Context context, ArrayList<DiceRoll> items) {
-            initSpinnerAdapter(context);
+        MyDiceRollerAdapter(ArrayList<DiceRoll> items) {
             if (items == null) {
                 items = new ArrayList<>();
                 items.add(new DiceRoll());
@@ -141,17 +127,12 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        private void initSpinnerAdapter(Context context) {
-            int[] intDiceSizeArray = getResources().getIntArray(R.array.dice_size_array);
-            mSpinnerAdapter = new ArrayAdapter<>(context, R.layout.spinner_item, integerArrayFromIntArray(intDiceSizeArray));
-        }
-
-        public void add(DiceRoll diceRoll) {
+        void add(DiceRoll diceRoll) {
             items.add(diceRoll);
             notifyDataSetChanged();
         }
 
-        public void remove(int position) {
+        void remove(int position) {
             items.remove(position);
             notifyDataSetChanged();
         }
@@ -162,125 +143,120 @@ public class MainActivity extends AppCompatActivity {
             notifyDataSetChanged();
         }
 
-        public void loadDiceSet(Cursor rolls) {
+        void loadDiceSet(List<DiceRoll> rolls) {
             items.clear();
-            if (rolls.getCount() == 0) return;
+            if (rolls.isEmpty()) return;
             else {
-                rolls.moveToFirst();
-                do {
-                    items.add(DatabaseHelper.cursorToDiceRoll(rolls));
-                } while (rolls.moveToNext());
+                items.addAll(rolls);
+                notifyDataSetChanged();
             }
-            notifyDataSetChanged();
         }
 
-        public ArrayList<DiceRoll> getList() {
+        ArrayList<DiceRoll> getList() {
             return items;
         }
 
         private class DiceRollViewHolder {
             private int currPosition;
 
-            private EditText numDiceEditText;
-            private Spinner diceSizeSpinner;
-            private TextView plusTextView;
-            private EditText modifierEditText;
+            private TextView diceRollTextView;
             private TextView totalTextView;
             private TextView rollResultsTextView;
 
             private DiceRollViewHolder(View convertView) {
-                numDiceEditText = (EditText) convertView.findViewById(R.id.numDiceEditText);
-                diceSizeSpinner = (Spinner) convertView.findViewById(R.id.diceSizeSpinner);
-                plusTextView = (TextView) convertView.findViewById(R.id.plusTextView);
-                modifierEditText = (EditText) convertView.findViewById(R.id.modifierEditText);
+                diceRollTextView = (TextView) convertView.findViewById(R.id.diceRollTextView);
                 totalTextView = (TextView) convertView.findViewById(R.id.totalTextView);
                 rollResultsTextView = (TextView) convertView.findViewById(R.id.rollResultsTextView);
 
-                diceSizeSpinner.setAdapter(mSpinnerAdapter);
-                diceSizeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                View.OnClickListener basicOptionsOnClickListener = new View.OnClickListener() {
                     @Override
-                    public void onItemSelected(AdapterView<?> parent, View view, int spinnerPosition, long id) {
-                        Log.d(LOG_TAG, currPosition + ": Spinner item selected");
-                        DiceRoll item = getCurrItem();
-                        if (item == null) return;
-
-                        int diceSize = mSpinnerAdapter.getItem(spinnerPosition);
-                        if (item.getDiceSize() != diceSize) {
-                            item.setDiceSize(diceSize);
-                            item.resetRollsAndTotal();
-                            mDiceRollerAdapter.notifyDataSetChanged();
-                        }
+                    public void onClick(View v) {
+                        openBasicDiceOptionsDialog();
                     }
+                };
 
-                    @Override
-                    public void onNothingSelected(AdapterView<?> parent) {}
-                });
+                diceRollTextView.setOnClickListener(basicOptionsOnClickListener);
+                totalTextView.setOnClickListener(basicOptionsOnClickListener);
+                rollResultsTextView.setOnClickListener(basicOptionsOnClickListener);
 
-                numDiceEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                    @Override
-                    public void onFocusChange(View v, boolean hasFocus) {
-                        if (!hasFocus) {
-                            Log.d(LOG_TAG, currPosition + ": Num dice lost focus");
-                            DiceRoll item = getCurrItem();
-                            if (item == null) return;
-
-                            String text = ((EditText) v).getText().toString();
-                            if (item.getNumDice().equals(text)) return;
-
-                            try {
-                                item.setNumDice(Integer.parseInt(text));
-                            } catch (NumberFormatException e) {
-                                item.setToDefaultNumDice();
-                            }
-                            item.resetRollsAndTotal();
-                            mDiceRollerAdapter.notifyDataSetChanged();
-                        }
-                    }
-                });
-
-                modifierEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                    @Override
-                    public void onFocusChange(View v, boolean hasFocus) {
-                        if (!hasFocus) {
-                            Log.d(LOG_TAG, currPosition + ": Modifier lost focus");
-                            DiceRoll item = getCurrItem();
-                            if (item == null) return;
-
-                            String text = ((EditText) v).getText().toString();
-                            if (item.getModifier().equals(text)) return;
-
-                            try {
-                                item.setModifier(Integer.parseInt(text));
-                            } catch (NumberFormatException e) {
-                                item.setToDefaultModifier();
-                            }
-                            item.resetRollsAndTotal();
-                            mDiceRollerAdapter.notifyDataSetChanged();
-                        }
-                    }
-                });
-
-                View.OnLongClickListener optionsOnLongClickListener = new View.OnLongClickListener() {
+                View.OnLongClickListener advancedOptionsOnLongClickListener = new View.OnLongClickListener() {
                     @Override
                     public boolean onLongClick(View v) {
-                        openDiceRollOptionsDialog();
+                        openAdvancedDiceRollOptionsDialog();
                         return true;
                     }
                 };
 
-                numDiceEditText.setOnLongClickListener(optionsOnLongClickListener);
-                diceSizeSpinner.setOnLongClickListener(optionsOnLongClickListener);
-                plusTextView.setOnLongClickListener(optionsOnLongClickListener);
-                modifierEditText.setOnLongClickListener(optionsOnLongClickListener);
-                totalTextView.setOnLongClickListener(optionsOnLongClickListener);
-                rollResultsTextView.setOnLongClickListener(optionsOnLongClickListener);
+                diceRollTextView.setOnLongClickListener(advancedOptionsOnLongClickListener);
+                totalTextView.setOnLongClickListener(advancedOptionsOnLongClickListener);
+                rollResultsTextView.setOnLongClickListener(advancedOptionsOnLongClickListener);
             }
 
-            private void openDiceRollOptionsDialog() {
-                final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                builder.setTitle(R.string.diceRollOptionsDialogTitle);
+            private void openBasicDiceOptionsDialog() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setTitle(R.string.basicDiceRollOptionsDialogTitle);
 
-                View v = mInflater.inflate(R.layout.dice_roll_options_dialog, null);
+                builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+
+                final View v = mInflater.inflate(R.layout.basic_dice_options_dialog, null);
+                final EditText numDiceEditTest = (EditText) v.findViewById(R.id.numDiceEditText);
+                final EditText diceSizeEditTest = (EditText) v.findViewById(R.id.diceSizeEditText);
+                final EditText modifierEditTest = (EditText) v.findViewById(R.id.modifierEditText);
+                builder.setView(v);
+
+                final DiceRoll item = getCurrItem();
+
+                numDiceEditTest.setText(item.getNumDiceStr());
+                diceSizeEditTest.setText(item.getDiceSizeStr());
+                modifierEditTest.setText(item.getModifierStr());
+
+                builder.setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Integer numDice = myStringToInteger(numDiceEditTest.getText().toString());
+                        Integer diceSize = myStringToInteger(diceSizeEditTest.getText().toString());
+                        Integer mod = myStringToInteger(modifierEditTest.getText().toString());
+
+                        String error = "";
+
+                        if (numDice != null) {
+                             if (!item.setNumDice(numDice)) {
+                                 String numDiceError = MainActivity.this.getResources().getString(R.string.numDiceToastError);
+                                 error += numDiceError + '\n';
+                             }
+                        } else item.setToDefaultNumDice();
+
+                        if (diceSize != null) {
+                            if (!item.setDiceSize(diceSize)) {
+                                String diceSizeError = MainActivity.this.getResources().getString(R.string.diceSizeToastError);
+                                error += diceSizeError + '\n';
+                            }
+                        } else item.setToDefaultDiceSize();
+
+                        if (!error.isEmpty()) showToast(error.trim());
+
+                        if (mod != null) item.setModifier(mod);
+                        else item.setToDefaultModifier();
+
+                        item.resetRollsAndTotal();
+                        mDiceRollerAdapter.notifyDataSetChanged();
+                    }
+                });
+
+                v.requestFocus();
+                builder.show();
+            }
+
+            private void openAdvancedDiceRollOptionsDialog() {
+                final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setTitle(R.string.advancedDiceRollOptionsDialogTitle);
+
+                View v = mInflater.inflate(R.layout.advanced_dice_roll_options_dialog, null);
                 builder.setView(v);
 
                 final CheckBox rerollOnesCheckBox = (CheckBox) v.findViewById(R.id.rerollOnesCheckBox);
@@ -292,12 +268,13 @@ public class MainActivity extends AppCompatActivity {
 
                 int[] textColors = MainActivity.this.getResources().getIntArray(R.array.textColors);
                 Integer[] colorArray = integerArrayFromIntArray(textColors);
-                colorArray[0] = DiceRoll.DEFAULT_COLOR;
+                colorArray[0] = DiceRoll.getDefaultColor();
 
                 final ColorSelectorAdapter colorAdapter = new ColorSelectorAdapter(MainActivity.this, -1, colorArray);
                 colorGridView.setAdapter(colorAdapter);
 
-                DiceRoll item = getCurrItem();
+                final DiceRoll item = getCurrItem();
+
                 rerollOnesCheckBox.setChecked(item.rerollOnesOption());
                 dropLowestCheckBox.setChecked(item.dropLowestOption());
                 highlightMinMaxCheckBox.setChecked(item.highlightMinMaxOption());
@@ -307,7 +284,6 @@ public class MainActivity extends AppCompatActivity {
                 builder.setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        DiceRoll item = getCurrItem();
                         long options = (rerollOnesCheckBox.isChecked() ? DiceRoll.REROLL_ONES : 0) |
                                 (dropLowestCheckBox.isChecked() ? DiceRoll.DROP_LOWEST : 0) |
                                 (highlightMinMaxCheckBox.isChecked() ? DiceRoll.HIGHLIGHT_MIN_MAX: 0) |
@@ -382,14 +358,20 @@ public class MainActivity extends AppCompatActivity {
 
             DiceRoll diceRoll = getItem(listItemPosition);
 
-            holder.numDiceEditText.setText(diceRoll.getNumDice());
-            holder.diceSizeSpinner.setSelection(mSpinnerAdapter.getPosition(diceRoll.getDiceSize()));
-            holder.modifierEditText.setText(diceRoll.getModifier());
+            holder.diceRollTextView.setText(diceRoll.toString());
             holder.totalTextView.setText(diceRoll.getTotal());
             holder.totalTextView.setTextColor(diceRoll.getColor());
             holder.rollResultsTextView.setText(diceRoll.getRollsSpannable(), TextView.BufferType.SPANNABLE);
 
             return convertView;
+        }
+    }
+
+    private static Integer myStringToInteger(String s) {
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
@@ -424,21 +406,11 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.loadDiceSetDialogTitle);
 
-        final SQLiteDatabase db = mDatabaseOpenHelper.getReadableDatabase();
-        final Cursor diceSets = DatabaseHelper.getDiceSets(db);
+        final List<DiceSet> diceSets = mDatabaseHelper.getDiceSets();
 
-        final CursorAdapter cursorAdapter = new CursorAdapter(this, diceSets, false) {
-            @Override
-            public View newView(Context context, Cursor cursor, ViewGroup parent) {
-                return LayoutInflater.from(context).inflate(android.R.layout.select_dialog_singlechoice, parent, false);
-            }
-
-            @Override
-            public void bindView(View view, Context context, Cursor cursor) {
-                CheckedTextView item = (CheckedTextView) view;
-                item.setText(DatabaseHelper.cursorToSetName(cursor));
-            }
-        };
+        final ArrayAdapter<DiceSet> adapter = new ArrayAdapter<>(this,
+                android.R.layout.select_dialog_singlechoice,
+                diceSets);
 
         builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
             @Override
@@ -447,54 +419,37 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        builder.setAdapter(cursorAdapter, new DialogInterface.OnClickListener() {
+        builder.setAdapter(adapter, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                Cursor diceSetCursor = (Cursor) cursorAdapter.getItem(which);
+                DiceSet diceSet = adapter.getItem(which);
 
-                SQLiteDatabase db = mDatabaseOpenHelper.getReadableDatabase();
-                Cursor diceRolls = DatabaseHelper.getAllDiceRollsInSet(db, diceSetCursor);
+                List<DiceRoll> diceRolls = mDatabaseHelper.getAllDiceRollsInSet(diceSet);
 
                 mDiceRollerAdapter.loadDiceSet(diceRolls);
             }
         });
 
         builder.show();
-        db.close();
     }
 
     private void openSaveDiceSetDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.saveDiceSetDialogTitle);
 
-        final EditText saveSetNameEditText = (EditText) mInflater.inflate(R.layout.save_dice_set_dialog, null);
+        final AutoCompleteTextView saveSetNameEditText = (AutoCompleteTextView) mInflater.inflate(R.layout.save_dice_set_dialog, null);
+        final ArrayAdapter<DiceSet> autoCompleteAdapter =
+                new ArrayAdapter<>(this,
+                        android.R.layout.simple_dropdown_item_1line,
+                        mDatabaseHelper.getDiceSets()
+                );
+        saveSetNameEditText.setAdapter(autoCompleteAdapter);
         builder.setView(saveSetNameEditText);
 
         builder.setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                String setName = saveSetNameEditText.getText().toString();
-                if (setName.isEmpty()) {
-                    String emptyNameError = MainActivity.this.getResources().getString(R.string.saveDiceSetEmptyNameError);
-                    Toast toast = Toast.makeText(MainActivity.this, emptyNameError, Toast.LENGTH_LONG);
-                    toast.setGravity(Gravity.CENTER, 0, 0);
-                    toast.show();
-                } else {
-                    SQLiteDatabase db = mDatabaseOpenHelper.getReadableDatabase();
-                    boolean isDuplicateName = DatabaseHelper.isDiceSetNameUsed(db, setName);
-                    db.close();
-
-                    if (isDuplicateName) {
-                        // TODO: Ask to overwrite
-                        // TODO: Autocomplete existing set names?
-                        String duplicateNameError = MainActivity.this.getResources().getString(R.string.saveDiceSetDuplicateNameError);
-                        Toast toast = Toast.makeText(MainActivity.this, duplicateNameError, Toast.LENGTH_LONG);
-                        toast.setGravity(Gravity.CENTER, 0, 0);
-                        toast.show();
-                    } else {
-                        saveDiceSet(setName);
-                    }
-                }
+                // Do nothing override later
             }
         });
 
@@ -505,40 +460,60 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        builder.show();
-    }
+        final AlertDialog saveDialog = builder.create();
+        saveDialog.show();
 
-    private void saveDiceSet(String setName) {
-        SQLiteDatabase db = mDatabaseOpenHelper.getWritableDatabase();
+        saveDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final String setName = saveSetNameEditText.getText().toString();
+                if (setName.isEmpty()) {
+                    String emptyNameError = MainActivity.this.getResources().getString(R.string.saveDiceSetEmptyNameError);
+                    showToast(emptyNameError);
+                } else {
+                    final long duplicateSetId = mDatabaseHelper.isDiceSetNameUsed(setName);
 
-        List<DiceRoll> diceRolls = new ArrayList<>();
-        for (int i = 0; i < mDiceRollerAdapter.getCount(); ++i) {
-            diceRolls.add(mDiceRollerAdapter.getItem(i));
-        }
+                    if (duplicateSetId == -1) { // no duplicate set name
+                        mDatabaseHelper.saveDiceSet(setName, mDiceRollerAdapter.getList());
+                        saveDialog.dismiss();
+                    } else {
+                        // TODO: Autocomplete existing set names?
+                        AlertDialog.Builder overwriteBuilder = new AlertDialog.Builder(MainActivity.this);
 
-        DatabaseHelper.saveDiceSet(db, setName, diceRolls);
-        db.close();
+                        overwriteBuilder.setMessage(R.string.overwriteDiceSetMessage);
+
+                        overwriteBuilder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface overwriteDialog, int which) {
+                                mDatabaseHelper.overwriteDiceSet(duplicateSetId, mDiceRollerAdapter.getList());
+                                overwriteDialog.dismiss();
+                                saveDialog.dismiss();
+                            }
+                        });
+
+                        overwriteBuilder.setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface overwriteDialog, int which) {
+                                overwriteDialog.dismiss();
+                            }
+                        });
+
+                        overwriteBuilder.show();
+                    }
+                }
+            }
+        });
     }
 
     private void openDeleteDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.deleteDiceSetDialogTitle);
 
-        final SQLiteDatabase db = mDatabaseOpenHelper.getReadableDatabase();
-        final Cursor diceSets = DatabaseHelper.getDiceSets(db);
+        final List<DiceSet> diceSets = mDatabaseHelper.getDiceSets();
 
-        final CursorAdapter cursorAdapter = new CursorAdapter(this, diceSets, false) {
-            @Override
-            public View newView(Context context, Cursor cursor, ViewGroup parent) {
-                return LayoutInflater.from(context).inflate(android.R.layout.select_dialog_singlechoice, parent, false);
-            }
-
-            @Override
-            public void bindView(View view, Context context, Cursor cursor) {
-                CheckedTextView item = (CheckedTextView) view;
-                item.setText(DatabaseHelper.cursorToSetName(cursor));
-            }
-        };
+        final ArrayAdapter<DiceSet> adapter = new ArrayAdapter<>(this,
+                android.R.layout.select_dialog_singlechoice,
+                diceSets);
 
         builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
             @Override
@@ -547,18 +522,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        builder.setAdapter(cursorAdapter, new DialogInterface.OnClickListener() {
+        builder.setAdapter(adapter, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                final SQLiteDatabase db = mDatabaseOpenHelper.getWritableDatabase();
-                final Cursor diceSetCursor = (Cursor) cursorAdapter.getItem(which);
-                DatabaseHelper.deleteDiceSet(db, diceSetCursor);
-                db.close();
+                // TODO: Ask for confirmation
+                final DiceSet diceSet = adapter.getItem(which);
+                mDatabaseHelper.deleteDiceSet(diceSet);
             }
         });
 
         builder.show();
-        db.close();
     }
 
     private void showHelp() {
@@ -574,10 +547,16 @@ public class MainActivity extends AppCompatActivity {
         outState.putParcelableArrayList(DICE_ROLL_LIST_KEY, mDiceRollerAdapter.getList());
     }
 
+    private void showToast(String message) {
+        Toast toast = Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG);
+        toast.setGravity(Gravity.CENTER, 0, 0);
+        toast.show();
+    }
+
     private static Integer[] integerArrayFromIntArray(int[] array) {
         Integer[] integerArray = new Integer[array.length];
         for (int i = 0; i < array.length; i++) {
-            integerArray[i] = Integer.valueOf(array[i]);
+            integerArray[i] = array[i];
         }
         return integerArray;
     }

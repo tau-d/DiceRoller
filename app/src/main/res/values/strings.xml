@@ -1,39 +1,55 @@
 <resources>
     <string name="app_name">Dice Roller</string>
 
-    <!-- DiceRoll list entries -->
-    <string name="numDiceHint"># Dice</string>
-    <string name="modifierHint">Mod</string>
-    <string name="setNameHint">Set name</string>
-    <string name="chooseColor">Text\nColor:</string>
 
     <!-- MainActivity buttons -->
     <string name="rollButtonLabel">Roll</string>
     <string name="addDiceLabel">Add</string>
     <string name="resetButtonLabel">Reset</string>
 
+
     <!-- Menu items -->
     <string name="loadMenuItem">Load</string>
     <string name="loadDiceSetDialogTitle">Load a dice set:</string>
+
     <string name="saveMenuItem">Save</string>
     <string name="saveDiceSetDialogTitle">Save current dice set</string>
+    <string name="setNameHint">Set name</string>
     <string name="saveDiceSetEmptyNameError">Please enter a nonempty set name.</string>
-    <string name="saveDiceSetDuplicateNameError">A set with that name already exists.\nPlease enter a different set name.</string>
-    <string name="deleteMenuItem">Delete</string>
+    <string name="overwriteDiceSetMessage">
+        A set with that name already exists. Do you want to overwrite it?
+    </string>
+
+    <string name="deleteMenuItem">Delete Set</string>
     <string name="deleteDiceSetDialogTitle">Delete a dice set:</string>
+
     <string name="helpMenuItem">Help</string>
     <string name="helpDialogTitle">Help</string>
-    <string name="helpDialogMessage">Long click an item to edit its options or remove it.</string>
+    <string name="helpDialogMessage">
+        Single click an item to edit its number of dice, dice size, and/or modifier.
+        \n\nLong click an item to edit its advanced options or remove it.
+    </string>
+
 
     <!-- DiceRoll options -->
-    <string name="diceRollOptionsDialogTitle">Dice Roll Options</string>
+    <string name="basicDiceRollOptionsDialogTitle">Basic Dice Roll Options</string>
+    <string name="numDiceLabel"># of Dice:</string>
+    <string name="diceSizeLabel">Dice Size:</string>
+    <string name="modifierLabel">Modifier:</string>
+    <string name="diceSizeToastError">The minimum dice size is 2</string>
+    <string name="numDiceToastError">The minimum # of dice is 1</string>
+
+    <string name="advancedDiceRollOptionsDialogTitle">Advanced Dice Roll Options</string>
     <string name="deleteOptionDialogButton">Delete</string>
     <string name="rerollOnesCheckBox">Reroll Ones</string>
     <string name="dropLowestCheckBox">Drop Lowest</string>
     <string name="highlightMinMaxCheckBox">Highlight Min/Max</string>
     <string name="sortRollsCheckBox">Sort Rolls</string>
+    <string name="chooseColor">Text\nColor:</string>
 
 
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
 </resources>

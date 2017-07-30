@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="plusTextSize">24sp</dimen>
-    <dimen name="editTextSize">20sp</dimen>
+    <dimen name="editTextSize">24sp</dimen>
     <dimen name="rollResultsTextSize">16sp</dimen>
-    <dimen name="spinnerWidth">25sp</dimen>
-    <dimen name="spinnerItemPadding">8dp</dimen>
     <dimen name="activityPadding">8dp</dimen>
     <dimen name="activityMargin">8dp</dimen>
-    <dimen name="saveEditTextPadding">10dp</dimen>
+    <dimen name="saveEditTextMargin">20dp</dimen>
     <dimen name="rollTotalTextViewWidth">50dp</dimen>
     <dimen name="colorSquareLength">20dp</dimen>
     <dimen name="columnSpacing">10dp</dimen>

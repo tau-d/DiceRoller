@@ -11,7 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 
-public class ColorSelectorAdapter extends ArrayAdapter<Integer> {
+class ColorSelectorAdapter extends ArrayAdapter<Integer> {
     private int translucent;
     private int outerBorderColor;
     private int innerBorderColor;
@@ -19,20 +19,20 @@ public class ColorSelectorAdapter extends ArrayAdapter<Integer> {
     private LayoutInflater mInflater;
     private int selectedPosition = 0;
 
-    public ColorSelectorAdapter(@NonNull Context context, @LayoutRes int resource, @NonNull Integer[] objects) {
+    ColorSelectorAdapter(@NonNull Context context, @LayoutRes int resource, @NonNull Integer[] objects) {
         super(context, resource, objects);
         Resources res = context.getResources();
         translucent = res.getColor(R.color.translucent);
-        outerBorderColor = DiceRoll.DEFAULT_COLOR;
+        outerBorderColor = DiceRoll.getDefaultColor();
         innerBorderColor = res.getColor(R.color.black);
         mInflater = LayoutInflater.from(context);
     }
 
-    public int getSelectedColor() {
+    int getSelectedColor() {
         return getItem(selectedPosition);
     }
 
-    public void setSelectedColor(int selectedColor) {
+    void setSelectedColor(int selectedColor) {
         selectedPosition = getPosition(selectedColor);
     }
 

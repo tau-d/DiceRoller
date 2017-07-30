@@ -14,6 +14,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.BaseAdapter;
@@ -434,9 +435,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openSaveDiceSetDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.saveDiceSetDialogTitle);
-
         final AutoCompleteTextView saveSetNameEditText = (AutoCompleteTextView) mInflater.inflate(R.layout.save_dice_set_dialog, null);
         final ArrayAdapter<DiceSet> autoCompleteAdapter =
                 new ArrayAdapter<>(this,
@@ -444,21 +442,17 @@ public class MainActivity extends AppCompatActivity {
                         mDatabaseHelper.getDiceSets()
                 );
         saveSetNameEditText.setAdapter(autoCompleteAdapter);
-        builder.setView(saveSetNameEditText);
 
-        builder.setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                // Do nothing override later
-            }
-        });
-
-        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-        });
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.saveDiceSetDialogTitle)
+                .setView(saveSetNameEditText)
+                .setPositiveButton(R.string.save, null)
+                .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
 
         final AlertDialog saveDialog = builder.create();
         saveDialog.show();
@@ -480,23 +474,21 @@ public class MainActivity extends AppCompatActivity {
                         // TODO: Autocomplete existing set names?
                         AlertDialog.Builder overwriteBuilder = new AlertDialog.Builder(MainActivity.this);
 
-                        overwriteBuilder.setMessage(R.string.overwriteDiceSetMessage);
-
-                        overwriteBuilder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface overwriteDialog, int which) {
-                                mDatabaseHelper.overwriteDiceSet(duplicateSetId, mDiceRollerAdapter.getList());
-                                overwriteDialog.dismiss();
-                                saveDialog.dismiss();
-                            }
-                        });
-
-                        overwriteBuilder.setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface overwriteDialog, int which) {
-                                overwriteDialog.dismiss();
-                            }
-                        });
+                        overwriteBuilder.setMessage(R.string.overwriteDiceSetMessage)
+                                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface overwriteDialog, int which) {
+                                        mDatabaseHelper.overwriteDiceSet(duplicateSetId, mDiceRollerAdapter.getList());
+                                        overwriteDialog.dismiss();
+                                        saveDialog.dismiss();
+                                    }
+                                })
+                                .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface overwriteDialog, int which) {
+                                        overwriteDialog.dismiss();
+                                    }
+                                });
 
                         overwriteBuilder.show();
                     }
@@ -506,32 +498,50 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openDeleteDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.deleteDiceSetDialogTitle);
-
-        final List<DiceSet> diceSets = mDatabaseHelper.getDiceSets();
-
         final ArrayAdapter<DiceSet> adapter = new ArrayAdapter<>(this,
                 android.R.layout.select_dialog_singlechoice,
-                diceSets);
+                mDatabaseHelper.getDiceSets());
 
-        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.deleteDiceSetDialogTitle)
+                .setAdapter(adapter, null)
+                .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+
+        final AlertDialog deleteSetDialog = builder.create();
+        deleteSetDialog.getListView().setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                final String msg = MainActivity.this.getResources().getString(R.string.confirmDeleteDialogMessage);
+                final DiceSet item = adapter.getItem(position);
+
+                final AlertDialog.Builder confirmBuilder = new AlertDialog.Builder(MainActivity.this);
+                confirmBuilder.setTitle(R.string.confirmDeleteDialogTitle)
+                        .setMessage(msg + '\n' + item.name)
+                        .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface confirmDialog, int which) {
+                                confirmDialog.dismiss();
+                            }
+                        })
+                        .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface confirmDialog, int which) {
+                                mDatabaseHelper.deleteDiceSet(item);
+                                confirmDialog.dismiss();
+                                deleteSetDialog.dismiss();
+                            }
+                        });
+
+                confirmBuilder.show();
             }
         });
 
-        builder.setAdapter(adapter, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                // TODO: Ask for confirmation
-                final DiceSet diceSet = adapter.getItem(which);
-                mDatabaseHelper.deleteDiceSet(diceSet);
-            }
-        });
-
-        builder.show();
+        deleteSetDialog.show();
     }
 
     private void showHelp() {

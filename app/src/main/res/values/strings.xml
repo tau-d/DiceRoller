@@ -22,6 +22,8 @@
 
     <string name="deleteMenuItem">Delete Set</string>
     <string name="deleteDiceSetDialogTitle">Delete a dice set:</string>
+    <string name="confirmDeleteDialogTitle">Confirm Set Deletion</string>
+    <string name="confirmDeleteDialogMessage">Are you sure you want to delete: </string>
 
     <string name="helpMenuItem">Help</string>
     <string name="helpDialogTitle">Help</string>
